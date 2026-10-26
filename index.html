@@ -42,8 +42,8 @@ function bal(a){return +a.opening+s.transactions.reduce((n,t)=>n+impact(t,a.id),
 function fillSelects(){let opts=s.accounts.map(a=>`<option value="${esc(a.id)}">${esc(a.name)} (${esc(a.currency)})</option>`).join("");let old=$("from").value,oldto=$("to").value;$("from").innerHTML=opts;$("to").innerHTML=opts;if(old) $("from").value=old;if(oldto)$("to").value=oldto;$("currency").value=account($("from").value)?.currency||"IDR"}
 function syncType(){
  let t=$("type").value, transfer=["Transfer","Currency Conversion"].includes(t);
- let needsFrom=["Expense","Transfer","Currency Conversion"].includes(t);
- let needsTo=["Income","Transfer","Currency Conversion","Reimbursement","Repayment"].includes(t);
+ let needsFrom=["Expense","Transfer","Currency Conversion","Credit Card Purchase","Credit Card Payment"].includes(t);
+ let needsTo=["Income","Transfer","Currency Conversion","Reimbursement","Repayment","Credit Card Payment"].includes(t);
  $("fromWrap").classList.toggle("hidden",!needsFrom);
  $("toWrap").classList.toggle("hidden",!needsTo);
  $("from").required=needsFrom; $("to").required=needsTo;
@@ -87,8 +87,8 @@ document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelect
 $("category").innerHTML=EXPENSE_CATS.map(c=>`<option>${c}</option>`).join("");$("date").value=today();$("from").onchange=syncType;$("to").onchange=syncType;$("type").onchange=syncType;syncType();
 $("form").onsubmit=e=>{
  e.preventDefault();
- let type=$("type").value, needsFrom=["Expense","Transfer","Currency Conversion"].includes(type);
- let needsTo=["Income","Transfer","Currency Conversion","Reimbursement","Repayment"].includes(type);
+ let type=$("type").value, needsFrom=["Expense","Transfer","Currency Conversion","Credit Card Purchase","Credit Card Payment"].includes(type);
+ let needsTo=["Income","Transfer","Currency Conversion","Reimbursement","Repayment","Credit Card Payment"].includes(type);
  let from=needsFrom?$("from").value:"",to=needsTo?$("to").value:"",amount=+$("amount").value;
  if(amount<=0)return alert("Enter an amount greater than zero.");
  if(needsFrom&&!from)return alert("Choose the account the money comes from.");
