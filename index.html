@@ -41,9 +41,19 @@ function impact(t,id){
 function bal(a){return +a.opening+s.transactions.reduce((n,t)=>n+impact(t,a.id),0)}
 function fillSelects(){let opts=s.accounts.map(a=>`<option value="${esc(a.id)}">${esc(a.name)} (${esc(a.currency)})</option>`).join("");let old=$("from").value,oldto=$("to").value;$("from").innerHTML=opts;$("to").innerHTML=opts;if(old) $("from").value=old;if(oldto)$("to").value=oldto;$("currency").value=account($("from").value)?.currency||"IDR"}
 function syncType(){
- let t=$("type").value, transfer=["Transfer","Currency Conversion"].includes(t);
+ let t=$("type").value;
  let needsFrom=["Expense","Transfer","Currency Conversion","Credit Card Purchase","Credit Card Payment"].includes(t);
  let needsTo=["Income","Transfer","Currency Conversion","Reimbursement","Repayment","Credit Card Payment"].includes(t);
+ // Filter the account choices so credit-card transactions cannot accidentally use the wrong account type.
+ const previousFrom=$("from").value, previousTo=$("to").value;
+ const fromAccounts=t==="Credit Card Purchase" ? s.accounts.filter(a=>a.kind==="Liability")
+   : t==="Credit Card Payment" ? s.accounts.filter(a=>a.kind!=="Liability"&&a.kind!=="Exclude from net worth")
+   : s.accounts;
+ const toAccounts=t==="Credit Card Payment" ? s.accounts.filter(a=>a.kind==="Liability") : s.accounts;
+ $("from").innerHTML=fromAccounts.map(a=>`<option value="${esc(a.id)}">${esc(a.name)} (${esc(a.currency)})</option>`).join("");
+ $("to").innerHTML=toAccounts.map(a=>`<option value="${esc(a.id)}">${esc(a.name)} (${esc(a.currency)})</option>`).join("");
+ if(fromAccounts.some(a=>a.id===previousFrom)) $("from").value=previousFrom;
+ if(toAccounts.some(a=>a.id===previousTo)) $("to").value=previousTo;
  $("fromWrap").classList.toggle("hidden",!needsFrom);
  $("toWrap").classList.toggle("hidden",!needsTo);
  $("from").required=needsFrom; $("to").required=needsTo;
@@ -59,6 +69,9 @@ function syncType(){
  $("receivedWrap").classList.toggle("hidden",t!=="Currency Conversion");
  $("amountLabel").textContent=t==="Currency Conversion"?"Amount sent":t==="Credit Card Payment"?"Payment amount":t==="Credit Card Purchase"?"Purchase amount":"Amount";
  $("currency").value=(needsFrom?account($("from").value):account($("to").value))?.currency||"IDR";
+ if(t==="Credit Card Purchase" && !fromAccounts.length) $("msg").textContent="No Liability account found. In Accounts, set your credit card account type to Liability and save.";
+ else if(t==="Credit Card Payment" && !toAccounts.length) $("msg").textContent="No Liability account found. In Accounts, set your credit card account type to Liability and save.";
+ else $("msg").textContent="";
 }
 function renderAccounts(){$("startDate").value=s.startDate;$("accountEditor").innerHTML=s.accounts.map(a=>`<div class="account" data-id="${esc(a.id)}"><input class="name" aria-label="Account name" value="${esc(a.name)}"><select class="cur" aria-label="Currency">${["IDR","JPY","SGD","THB","USD","PHP","EUR","AUD"].map(c=>`<option ${a.currency===c?"selected":""}>${c}</option>`).join("")}</select><input class="opening" aria-label="Opening balance" type="number" step="any" value="${+a.opening||0}"><select class="kind" aria-label="Account type">${["Asset","Savings","Investment","Liability","Bridge","Exclude from net worth"].map(k=>`<option ${a.kind===k?"selected":""}>${k}</option>`).join("")}</select><div class="extra muted">Estimated balance: ${fmt(bal(a),a.currency)}</div></div>`).join("")}
 function renderReconciliation(){
