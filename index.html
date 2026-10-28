@@ -32,8 +32,8 @@ function today(){return new Date().toLocaleDateString("en-CA")}
 function impact(t,id){
  let v=0;
  if(t.type==="Expense"&&t.from===id)v-=+t.amount;
- else if(t.type==="Credit Card Purchase"&&t.from===id)v+=+t.amount;
- else if(t.type==="Credit Card Payment"){if(t.from===id)v-=+t.amount;if(t.to===id)v-=+t.amount}
+ else if(t.type==="Credit Card Purchase"&&t.from===id)v-=+t.amount;
+ else if(t.type==="Credit Card Payment"){if(t.from===id)v-=+t.amount;if(t.to===id)v+=+t.amount}
  else if(["Income","Reimbursement","Repayment"].includes(t.type)&&(t.to===id||(!t.to&&t.from===id)))v+=+t.amount;
  else if(["Transfer","Currency Conversion"].includes(t.type)){if(t.from===id)v-=+t.amount;if(t.to===id)v+=+(t.received||t.amount)}
  return v
