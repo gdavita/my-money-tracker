@@ -11,6 +11,7 @@
 <body><header><h1>My Money</h1><p>Private personal finance tracker · prototype</p></header>
 <main class="wrap">
 <div class="notice"><b>Privacy & backup:</b> This prototype stores data only in this browser on this device; it does not sync to your other devices. Export backups regularly. Keep financial data and backups out of your public GitHub repository. Keep your v9.2 workbook as the source of truth until this is tested.</div>
+<div class="section" id="cloudPanel"><h2>Cloud sync · computer + iPhone</h2><p class="muted">Sign in with the email and password you created in Supabase. Your data remains private under the database security policies.</p><div id="cloudSignedOut"><div class="row"><div class="field"><label>Email</label><input id="cloudEmail" type="email" autocomplete="username" placeholder="you@example.com"></div><div class="field"><label>Password</label><input id="cloudPassword" type="password" autocomplete="current-password" placeholder="Your password"></div></div><div class="actions"><button type="button" id="cloudSignIn">Sign in</button><button type="button" class="secondary" id="cloudSignUp">Create account</button></div></div><div id="cloudSignedIn" class="hidden"><p id="cloudUser" class="help"></p><div class="actions"><button type="button" id="cloudSync">Sync now</button><button type="button" class="secondary" id="cloudSignOut">Sign out</button></div></div><p id="cloudMsg" class="muted">Not connected.</p></div>
 <nav class="tabs"><button class="tab active" data-tab="home">Overview</button><button class="tab" data-tab="add">Quick add</button><button class="tab" data-tab="history">Transactions</button><button class="tab" data-tab="accounts">Accounts</button><button class="tab" data-tab="backup">Backup</button></nav>
 <section id="home" class="panel active"><div class="stats"><div class="card"><div class="label">IDR cash & savings estimate</div><div class="value" id="balance">Rp0</div><div class="muted">Excludes foreign currency, investments, liabilities, bridges and Gwen</div></div><div class="card"><div class="label">Expenses this month</div><div class="value" id="expenses">Rp0</div></div><div class="card"><div class="label">Transactions recorded</div><div class="value" id="count">0</div></div></div><div class="section"><h2>Monthly spending by category</h2><div class="field"><label for="summaryMonth">Select month</label><select id="summaryMonth"></select></div><div class="value" id="monthTotal" style="font-size:18px;margin-bottom:10px">Rp0</div><div id="categorySummary"></div><p class="muted">Includes IDR Expense and Credit Card Purchase transactions only. Credit card payments, transfers, and currency conversions are excluded to avoid double counting.</p></div><div class="section"><h2>Recent activity</h2><div id="recent"></div></div><div class="section"><h2>Next step</h2><p class="help">Set opening balances under Accounts, then try Quick add. This first version is a local prototype: it does not yet import bank CSVs, match transfers automatically, calculate foreign-currency totals, or fully reproduce your v9.2 formulas.</p></div></section>
 <section id="add" class="panel"><div class="section"><h2>Quick add</h2><p class="muted">Choose the account direction that matches the transaction. Transfers use both accounts; income, reimbursements and repayments go into an account.</p><form id="form"><div class="row"><div class="field"><label>Date</label><input id="date" type="date" required></div><div class="field"><label>Type</label><select id="type"><option>Expense</option><option>Income</option><option>Transfer</option><option>Currency Conversion</option><option>Reimbursement</option><option>Repayment</option><option>Credit Card Purchase</option><option>Credit Card Payment</option></select></div></div><div class="row" id="fromWrap"><div class="field"><label id="fromLabel">From account</label><select id="from"></select></div></div><div class="row hidden" id="toWrap"><div class="field"><label id="toLabel">To account</label><select id="to"></select></div></div><div class="row"><div class="field"><label id="amountLabel">Amount</label><input id="amount" type="number" min="0.01" step="any" placeholder="e.g. 45000" required></div><div class="field"><label>Source currency</label><input id="currency" value="IDR" readonly></div></div><div class="field hidden" id="receivedWrap"><label id="receivedLabel">Amount received in destination currency</label><input id="received" type="number" min="0.01" step="any" placeholder="Enter amount received"></div><div class="field" id="catWrap"><label id="categoryLabel">Expense category</label><select id="category"></select></div><div class="field"><label>Description / purpose</label><input id="description" maxlength="160" placeholder="e.g. lunch, Shopee, transfer to savings"></div><div class="actions"><button type="submit">Save transaction</button><button type="reset" class="secondary">Clear</button></div></form><p id="msg" class="muted"></p></div></section>
@@ -18,14 +19,60 @@
 <section id="accounts" class="panel"><div class="section"><h2>Accounts & opening balances</h2><p class="muted">Enter balances as of your ledger start date. Gwen's funds are excluded from personal net worth.</p><div class="field"><label>Ledger start date</label><input id="startDate" type="date"></div><div id="accountEditor"></div><div class="actions"><button id="saveAccounts">Save account settings</button><button id="newAccount" class="secondary">Add account</button></div><p id="accountMsg" class="muted"></p></div><div class="section"><h2>Check actual bank balances</h2><p class="muted">After recording transactions, enter the balance shown by your bank or wallet. The app compares it with your calculated balance. This does not create a transaction or change your records.</p><div id="reconcileEditor"></div><p id="reconcileMsg" class="muted"></p></div><div class="section"><h2>Rules to preserve</h2><ul class="muted"><li>Internal transfers are not expenses or income.</li><li>Credit-card purchases are expenses; card payment is a liability settlement.</li><li>Foreign currency purchase is conversion, not spending.</li><li>Investments are assets, not available spending money.</li><li>Reimbursements and friends' repayments are not income.</li></ul></div></section>
 <section id="backup" class="panel"><div class="section"><h2>Export / restore</h2><p class="muted">JSON includes your account setup and transactions. CSV is for spreadsheet review. Store exports somewhere private.</p><div class="actions"><button id="json">Export full backup (JSON)</button><button id="csv" class="secondary">Export transactions (CSV)</button></div><hr style="border:0;border-top:1px solid #dfe5e0;margin:18px 0"><div class="field"><label>Restore JSON backup exported by this app</label><input id="file" type="file" accept=".json,application/json"></div><button id="restore" class="secondary">Restore backup</button><p id="backupMsg" class="muted"></p><div class="notice" style="margin-top:14px">Bank-statement CSV import is not enabled yet. Each bank uses different columns; we should test each format before importing to avoid duplicates or incorrect balances.</div></div></section>
 <footer>Prototype only · No bank connection · No automatic sync</footer></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+const SUPABASE_URL="https://vmtdirryabayrusrtiuz.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY="sb_publishable_h_8OzE3oUETwUGbHuOlyZQ_tosbhsLw";
+const cloudClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+let cloudSession=null, cloudBusy=false;
 const EXPENSE_CATS=["Food","Personal Shopping","Household","Transportation","Family Support","Bills & Subscriptions","Travel","Health & Personal Care","Entertainment","Work / Company","Gifts & Donations","Financial","Other"];
 const INCOME_CATS=["Salary","Freelance / Side Income","Business Income","Interest / Investment Income","Cashback / Rewards","Gift Received","Other Income"];
 const SEED=[["BCA","IDR","Asset",0],["SeaBank","IDR","Asset",0],["Jago Main","IDR","Asset",0],["Jago Glo Jason","IDR","Savings",0],["Jago Gwen","IDR","Exclude from net worth",0],["Jago Kantong Bayar","IDR","Asset",0],["Jago Japan","IDR","Savings",0],["Jenius Main","IDR","Asset",3842],["Jenius Japan","JPY","Asset",350.05],["Jenius SGD","SGD","Asset",2.82],["Jenius Thai","THB","Asset",116.53],["Jenius USD","USD","Asset",3.43],["UOB Bank","IDR","Asset",0],["UOB Credit Card","IDR","Liability",0],["GoPay","IDR","Asset",0],["OVO","IDR","Asset",0],["DANA","IDR","Bridge",0],["FLIP","IDR","Bridge",0],["Bibit","IDR","Investment",44254983],["Ajaib","IDR","Investment",11628845],["SeaBank Deposito","IDR","Savings",0],["Cash","IDR","Asset",0]];
 let s={startDate:"2026-10-05",accounts:SEED.map((a,i)=>({id:"a"+i,name:a[0],currency:a[1],kind:a[2],opening:a[3]})),transactions:[]};const KEY="mymoney_local_v1";
 try{let old=JSON.parse(localStorage.getItem(KEY));if(old?.accounts&&old?.transactions)s=old}catch(e){}
 const $=id=>document.getElementById(id), esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function save(){localStorage.setItem(KEY,JSON.stringify(s));render()}
+function save(){localStorage.setItem(KEY,JSON.stringify(s));render();if(cloudSession&&!cloudBusy) syncToCloud().catch(e=>setCloudMsg("Local save succeeded, but cloud sync failed: "+e.message));}
+function setCloudMsg(t){$("cloudMsg").textContent=t}
+function cloudAccountRow(a){return {user_id:cloudSession.user.id,local_id:a.id,name:a.name,currency:a.currency,kind:a.kind,opening_balance:+a.opening||0,actual_balance:a.actualBalance===undefined||a.actualBalance===""?null:a.actualBalance,last_checked:a.lastChecked||null};}
+function cloudTransactionRow(t){return {user_id:cloudSession.user.id,local_id:t.id,transaction_date:t.date,transaction_type:t.type,from_account_local_id:t.from||null,to_account_local_id:t.to||null,amount:+t.amount,received_amount:t.received===undefined?null:+t.received,category:t.category||"",description:t.description||""};}
+async function syncToCloud(){
+ if(!cloudSession||cloudBusy)return;
+ cloudBusy=true;
+ try{
+  const ac=s.accounts.map(cloudAccountRow), tx=s.transactions.map(cloudTransactionRow);
+  if(ac.length){const {error}=await cloudClient.from("accounts").upsert(ac,{onConflict:"user_id,local_id"});if(error)throw error;}
+  if(tx.length){const {error}=await cloudClient.from("transactions").upsert(tx,{onConflict:"user_id,local_id"});if(error)throw error;}
+  setCloudMsg("Synced to cloud. Open this app on your other device and sign in with the same account.");
+ }finally{cloudBusy=false}
+}
+async function loadCloudAndMerge(){
+ if(!cloudSession)return;
+ setCloudMsg("Loading cloud records…");
+ const [ar,tr]=await Promise.all([
+  cloudClient.from("accounts").select("*").eq("user_id",cloudSession.user.id),
+  cloudClient.from("transactions").select("*").eq("user_id",cloudSession.user.id)
+ ]);
+ if(ar.error)throw ar.error;if(tr.error)throw tr.error;
+ const localAccounts=s.accounts, localTx=s.transactions;
+ const cloudAccounts=(ar.data||[]).map(a=>({id:a.local_id,name:a.name,currency:a.currency,kind:a.kind,opening:Number(a.opening_balance)||0,...(a.actual_balance===null?{}:{actualBalance:Number(a.actual_balance)}),...(a.last_checked?{lastChecked:a.last_checked}:{})}));
+ const cloudTx=(tr.data||[]).map(t=>({id:t.local_id,date:t.transaction_date,type:t.transaction_type,from:t.from_account_local_id||"",to:t.to_account_local_id||"",amount:Number(t.amount),received:t.received_amount===null?Number(t.amount):Number(t.received_amount),category:t.category||"",description:t.description||""}));
+ if(!cloudAccounts.length&&!cloudTx.length){
+  setCloudMsg("Cloud is empty. Your current device has "+localAccounts.length+" accounts and "+localTx.length+" transactions. Click Sync now to upload them.");
+  return;
+ }
+ const accountMap=new Map(localAccounts.map(a=>[a.id,a]));cloudAccounts.forEach(a=>accountMap.set(a.id,a));
+ const txMap=new Map(localTx.map(t=>[t.id,t]));cloudTx.forEach(t=>txMap.set(t.id,t));
+ s.accounts=[...accountMap.values()];s.transactions=[...txMap.values()];
+ localStorage.setItem(KEY,JSON.stringify(s));render();
+ await syncToCloud();
+}
+async function refreshCloudUI(){
+ const {data}=await cloudClient.auth.getSession();cloudSession=data.session;
+ $("cloudSignedOut").classList.toggle("hidden",!!cloudSession);$("cloudSignedIn").classList.toggle("hidden",!cloudSession);
+ if(cloudSession){$("cloudUser").textContent="Signed in as "+cloudSession.user.email;try{await loadCloudAndMerge()}catch(e){setCloudMsg("Cloud connection error: "+e.message)}}
+ else setCloudMsg("Not connected. Sign in to sync between devices.");
+}
+
 function account(id){return s.accounts.find(a=>a.id===id)}
 function fmt(n,c="IDR"){try{return new Intl.NumberFormat("id-ID",{style:"currency",currency:c,maximumFractionDigits:c==="IDR"?0:2}).format(Number(n)||0)}catch{return (n||0)+" "+c}}
 function today(){return new Date().toLocaleDateString("en-CA")}
@@ -94,7 +141,7 @@ function renderReconciliation(){
   });
  });
 }
-function renderHistory(){let f=$("filter").value,q=$("search").value.toLowerCase(),arr=[...s.transactions].filter(t=>(!f||t.type===f)&&((t.description||"").toLowerCase().includes(q))).sort((a,b)=>b.date.localeCompare(a.date));$("table").innerHTML=arr.length?`<table><thead><tr><th>Date</th><th>Type</th><th>Description / category</th><th>From</th><th>To</th><th>Amount</th><th></th></tr></thead><tbody>${arr.map(t=>`<tr><td>${esc(t.date)}</td><td><span class="pill">${esc(t.type)}</span></td><td>${esc(t.description||"—")}<br><span class="muted">${esc(t.category||"")}</span></td><td>${esc(account(t.from)?.name||"—")}</td><td>${esc(account(t.to)?.name||"—")}</td><td>${fmt(t.amount,account(t.from)?.currency||"IDR")}</td><td><button class="secondary" data-del="${esc(t.id)}">Delete</button></td></tr>`).join("")}</tbody></table>`:`<div class="empty">No transactions yet.</div>`;document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{if(confirm("Delete this transaction?")){s.transactions=s.transactions.filter(t=>t.id!==b.dataset.del);save()}})}
+function renderHistory(){let f=$("filter").value,q=$("search").value.toLowerCase(),arr=[...s.transactions].filter(t=>(!f||t.type===f)&&((t.description||"").toLowerCase().includes(q))).sort((a,b)=>b.date.localeCompare(a.date));$("table").innerHTML=arr.length?`<table><thead><tr><th>Date</th><th>Type</th><th>Description / category</th><th>From</th><th>To</th><th>Amount</th><th></th></tr></thead><tbody>${arr.map(t=>`<tr><td>${esc(t.date)}</td><td><span class="pill">${esc(t.type)}</span></td><td>${esc(t.description||"—")}<br><span class="muted">${esc(t.category||"")}</span></td><td>${esc(account(t.from)?.name||"—")}</td><td>${esc(account(t.to)?.name||"—")}</td><td>${fmt(t.amount,account(t.from)?.currency||"IDR")}</td><td><button class="secondary" data-del="${esc(t.id)}">Delete</button></td></tr>`).join("")}</tbody></table>`:`<div class="empty">No transactions yet.</div>`;document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{if(confirm("Delete this transaction?")){s.transactions=s.transactions.filter(t=>t.id!==b.dataset.del);if(cloudSession)cloudClient.from("transactions").delete().eq("user_id",cloudSession.user.id).eq("local_id",b.dataset.del).then(({error})=>{if(error)setCloudMsg("Deleted locally; cloud deletion failed: "+error.message)});save()}})}
 function renderCategorySummary(){
  const sel=$("summaryMonth");
  const months=[...new Set([today().slice(0,7),...s.transactions.map(t=>(t.date||"").slice(0,7)).filter(m=>/^\\d{4}-\\d{2}$/.test(m))])].sort().reverse();
@@ -142,5 +189,11 @@ function dl(name,text,type){let a=document.createElement("a"),u=URL.createObject
 $("json").onclick=()=>dl("my-money-backup-"+today()+".json",JSON.stringify(s,null,2),"application/json");
 $("csv").onclick=()=>{let rows=[["Date","Type","Category","Description","From Account","To Account","Amount","Currency"],...s.transactions.map(t=>[t.date,t.type,t.category,t.description,account(t.from)?.name||"",account(t.to)?.name||"",t.amount,account(t.from)?.currency||""])];dl("my-money-transactions-"+today()+".csv",rows.map(r=>r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\r\n"),"text/csv;charset=utf-8")};
 $("restore").onclick=async()=>{let f=$("file").files[0];if(!f)return alert("Choose a JSON backup first.");if(!confirm("This replaces current data on this device. Export a backup first."))return;try{let p=JSON.parse(await f.text());if(!p.accounts||!p.transactions)throw Error("Invalid backup");s=p;save();$("backupMsg").textContent="Backup restored."}catch(e){$("backupMsg").textContent="Could not restore: "+e.message}};
-render();
+
+$("cloudSignIn").onclick=async()=>{const email=$("cloudEmail").value.trim(),password=$("cloudPassword").value;if(!email||!password)return alert("Enter your email and password.");setCloudMsg("Signing in…");const {data,error}=await cloudClient.auth.signInWithPassword({email,password});if(error){setCloudMsg("Sign-in failed: "+error.message);return}cloudSession=data.session;await refreshCloudUI()};
+$("cloudSignUp").onclick=async()=>{const email=$("cloudEmail").value.trim(),password=$("cloudPassword").value;if(!email||!password)return alert("Enter your email and password.");if(password.length<8)return alert("Use a password with at least 8 characters.");setCloudMsg("Creating account…");const {data,error}=await cloudClient.auth.signUp({email,password,options:{emailRedirectTo:"https://gdavita.github.io/my-money-tracker/"}});if(error){setCloudMsg("Sign-up failed: "+error.message);return}if(data.session){cloudSession=data.session;await refreshCloudUI()}else setCloudMsg("Account created. Check your email to confirm, then sign in here.")};
+$("cloudSync").onclick=async()=>{try{await loadCloudAndMerge()}catch(e){setCloudMsg("Sync failed: "+e.message)}};
+$("cloudSignOut").onclick=async()=>{await cloudClient.auth.signOut();cloudSession=null;refreshCloudUI()};
+cloudClient.auth.onAuthStateChange((_event,session)=>{cloudSession=session;$("cloudSignedOut").classList.toggle("hidden",!!session);$("cloudSignedIn").classList.toggle("hidden",!session);if(session){$("cloudUser").textContent="Signed in as "+session.user.email;}});
+render();refreshCloudUI();
 </script></body></html>
