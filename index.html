@@ -57,7 +57,12 @@ async function loadCloudAndMerge(){
  const cloudAccounts=(ar.data||[]).map(a=>({id:a.local_id,name:a.name,currency:a.currency,kind:a.kind,opening:Number(a.opening_balance)||0,...(a.actual_balance===null?{}:{actualBalance:Number(a.actual_balance)}),...(a.last_checked?{lastChecked:a.last_checked}:{})}));
  const cloudTx=(tr.data||[]).map(t=>({id:t.local_id,date:t.transaction_date,type:t.transaction_type,from:t.from_account_local_id||"",to:t.to_account_local_id||"",amount:Number(t.amount),received:t.received_amount===null?Number(t.amount):Number(t.received_amount),category:t.category||"",description:t.description||""}));
  if(!cloudAccounts.length&&!cloudTx.length){
-  setCloudMsg("Cloud is empty. Your current device has "+localAccounts.length+" accounts and "+localTx.length+" transactions. Click Sync now to upload them.");
+  if(localAccounts.length||localTx.length){
+   setCloudMsg("Cloud is empty. Uploading this device's "+localAccounts.length+" accounts and "+localTx.length+" transactions…");
+   await syncToCloud();
+  } else {
+   setCloudMsg("Cloud and this device are both empty. Add your accounts or restore a backup first.");
+  }
   return;
  }
  const accountMap=new Map(localAccounts.map(a=>[a.id,a]));cloudAccounts.forEach(a=>accountMap.set(a.id,a));
