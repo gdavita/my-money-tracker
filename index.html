@@ -147,6 +147,7 @@ function renderReconciliation(){
  });
 }
 let unlockedArchiveYears = new Set();
+let editingTransactionId = null;
 function selectedHistoryYear(){return $("historyYear").value||"all"}
 function historyYears(){
  const years=[...new Set([String(new Date().getFullYear()),...s.transactions.map(t=>(t.date||"").slice(0,4)).filter(y=>/^\d{4}$/.test(y))])].sort().reverse();
@@ -169,7 +170,19 @@ function renderHistory(){
  $("unlockYear").textContent=unlocked?"Lock this year again":"Temporarily unlock this year";
  $("exportYear").textContent=year==="all"?"Export all years (CSV)":`Export ${year} (CSV)`;
  let arr=[...s.transactions].filter(t=>(year==="all"||(t.date||"").startsWith(year))&&(!f||t.type===f)&&((t.description||"").toLowerCase().includes(q))).sort((a,b)=>b.date.localeCompare(a.date));
- $("table").innerHTML=arr.length?`<table><thead><tr><th>Date</th><th>Type</th><th>Description / category</th><th>From</th><th>To</th><th>Amount</th><th></th></tr></thead><tbody>${arr.map(t=>{const rowArchived=Number((t.date||"").slice(0,4))<new Date().getFullYear();const canDelete=!rowArchived||unlockedArchiveYears.has((t.date||"").slice(0,4));return `<tr><td>${esc(t.date)}</td><td><span class="pill">${esc(t.type)}</span></td><td>${esc(t.description||"—")}<br><span class="muted">${esc(t.category||"")}</span></td><td>${esc(account(t.from)?.name||"—")}</td><td>${esc(account(t.to)?.name||"—")}</td><td>${fmt(t.amount,account(t.from)?.currency||"IDR")}</td><td>${canDelete?`<button class="secondary" data-del="${esc(t.id)}">Delete</button>`:'<span class="muted">Archived</span>'}</td></tr>`}).join("")}</tbody></table>`:`<div class="empty">No transactions found for this selection.</div>`;
+ $("table").innerHTML=arr.length?`<table><thead><tr><th>Date</th><th>Type</th><th>Description / category</th><th>From</th><th>To</th><th>Amount</th><th></th></tr></thead><tbody>${arr.map(t=>{const rowArchived=Number((t.date||"").slice(0,4))<new Date().getFullYear();const canDelete=!rowArchived||unlockedArchiveYears.has((t.date||"").slice(0,4));return `<tr><td>${esc(t.date)}</td><td><span class="pill">${esc(t.type)}</span></td><td>${esc(t.description||"—")}<br><span class="muted">${esc(t.category||"")}</span></td><td>${esc(account(t.from)?.name||"—")}</td><td>${esc(account(t.to)?.name||"—")}</td><td>${fmt(t.amount,account(t.from)?.currency||"IDR")}</td><td>${canDelete?`<button class="secondary" data-edit="${esc(t.id)}">Edit</button> <button class="secondary" data-del="${esc(t.id)}">Delete</button>`:'<span class="muted">Archived</span>'}</td></tr>`}).join("")}</tbody></table>`:`<div class="empty">No transactions found for this selection.</div>`;
+ document.querySelectorAll("[data-edit]").forEach(b=>b.onclick=()=>{
+  const t=s.transactions.find(x=>x.id===b.dataset.edit);if(!t)return;
+  editingTransactionId=t.id;
+  $("date").value=t.date||today();$("type").value=t.type;syncType();
+  if(t.from)$("from").value=t.from;if(t.to)$("to").value=t.to;
+  $("amount").value=t.amount;$("received").value=t.received??t.amount;
+  if(t.category&&[...$("category").options].some(o=>o.value===t.category))$("category").value=t.category;
+  $("description").value=t.description||"";
+  $("form").querySelector('button[type="submit"]').textContent="Save changes";
+  $("msg").textContent="Editing transaction. Save changes or cancel.";
+  document.querySelector('[data-tab="add"]').click();
+ });
  document.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{if(confirm("Delete this transaction? This cannot be undone unless you have a backup.")){s.transactions=s.transactions.filter(t=>t.id!==b.dataset.del);if(cloudSession)cloudClient.from("transactions").delete().eq("user_id",cloudSession.user.id).eq("local_id",b.dataset.del).then(({error})=>{if(error)setCloudMsg("Deleted locally; cloud deletion failed: "+error.message)});save()}});
 }
 function renderCategorySummary(){
@@ -207,11 +220,19 @@ $("form").onsubmit=e=>{
   if(type==="Credit Card Payment"&&account(from)?.kind==="Liability")return alert("Choose a bank or cash account as the payment source, not another liability account.");
  let received=type==="Currency Conversion"?+$("received").value:amount;
  if(type==="Currency Conversion"&&received<=0)return alert("Enter the amount received in the destination currency.");
- s.transactions.push({id:"t"+Date.now(),date:$("date").value,type,from,to,amount,received,category:["Expense","Income","Credit Card Purchase"].includes(type)?$("category").value:"",description:$("description").value.trim()});
+ const updated={id:editingTransactionId||"t"+Date.now(),date:$("date").value,type,from,to,amount,received,category:["Expense","Income","Credit Card Purchase"].includes(type)?$("category").value:"",description:$("description").value.trim()};
+ if(editingTransactionId){
+  const index=s.transactions.findIndex(t=>t.id===editingTransactionId);
+  if(index<0){alert("This transaction could not be found. Please refresh and try again.");return;}
+  s.transactions[index]=updated;
+ }else s.transactions.push(updated);
+ editingTransactionId=null;
  save();$("form").reset();$("date").value=today();$("received").value="";syncType();
- $("msg").textContent="Saved on this device. Export a backup regularly.";
+ $("form").querySelector('button[type="submit"]').textContent="Save transaction";
+ $("msg").textContent="Saved on this device. Cloud sync will update the existing record.";
  document.querySelector('[data-tab="history"]').click()
 };
+$("form").addEventListener("reset",()=>{editingTransactionId=null;setTimeout(()=>{$("form").querySelector('button[type="submit"]').textContent="Save transaction";$("date").value=today();syncType()},0)});
 $("filter").onchange=renderHistory;$("search").oninput=renderHistory;$("historyYear").onchange=renderHistory;$("summaryMonth").onchange=renderCategorySummary;
 $("unlockYear").onclick=()=>{const year=selectedHistoryYear();if(!year||year==="all")return;if(unlockedArchiveYears.has(year)){unlockedArchiveYears.delete(year)}else{if(!confirm("Temporarily unlock "+year+" on this device? This allows deleting its transactions. Make a backup first."))return;unlockedArchiveYears.add(year)}renderHistory()};
 $("exportYear").onclick=()=>{const year=selectedHistoryYear();const tx=year==="all"?s.transactions:s.transactions.filter(t=>(t.date||"").startsWith(year));const rows=[["Date","Type","Category","Description","From Account","To Account","Amount","Currency"],...tx.map(t=>[t.date,t.type,t.category,t.description,account(t.from)?.name||"",account(t.to)?.name||"",t.amount,account(t.from)?.currency||""])];const csv=rows.map(r=>r.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\r\n");dl("my-money-transactions-"+(year==="all"?"all-years":year)+"-"+today()+".csv",csv,"text/csv;charset=utf-8")};
