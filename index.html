@@ -225,6 +225,10 @@ function auditValue(v){
  if(typeof v==="object")return JSON.stringify(v);
  return String(v);
 }
+function auditDisplayValue(k,v){
+ if((k==="from_account_local_id"||k==="to_account_local_id")&&v){const a=s.accounts.find(x=>String(x.id)===String(v));return a?a.name:`Unknown account (${v})`;}
+ return auditValue(v);
+}
 function auditFieldLabel(k){
  const labels={transaction_date:"Transaction date",transaction_type:"Transaction type",from_account_local_id:"From account",to_account_local_id:"To account",amount:"Amount",received_amount:"Received amount",category:"Category",description:"Description"};
  return labels[k]||k.replaceAll("_"," ");
@@ -237,7 +241,7 @@ function auditDetails(r){
  else if(r.action==="DELETE") rows=keys.filter(k=>before[k]!==undefined).map(k=>[k,before[k],"—"]);
  else rows=keys.filter(k=>JSON.stringify(before[k]??null)!==JSON.stringify(after[k]??null)).map(k=>[k,before[k],after[k]]);
  if(!rows.length)return "No transaction field details available.";
- return `<table style="min-width:420px"><thead><tr><th>Field</th><th>Before</th><th>After</th></tr></thead><tbody>${rows.map(([k,b,a])=>`<tr><td>${esc(auditFieldLabel(k))}</td><td>${esc(auditValue(b))}</td><td>${esc(auditValue(a))}</td></tr>`).join("")}</tbody></table>`;
+ return `<table style="min-width:420px"><thead><tr><th>Field</th><th>Before</th><th>After</th></tr></thead><tbody>${rows.map(([k,b,a])=>`<tr><td>${esc(auditFieldLabel(k))}</td><td>${esc(auditDisplayValue(k,b))}</td><td>${esc(auditDisplayValue(k,a))}</td></tr>`).join("")}</tbody></table>`;
 }
 async function loadAuditHistory(){
  const msg=$("auditMsg"),out=$("auditTable");
