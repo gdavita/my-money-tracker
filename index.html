@@ -18,7 +18,7 @@
 <section id="history" class="panel"><div class="section"><h2>Transaction history</h2><div class="row"><div class="field"><label>Transaction year</label><select id="historyYear"></select></div><div class="field"><label>Type filter</label><select id="filter"><option value="">All types</option><option>Expense</option><option>Income</option><option>Transfer</option><option>Currency Conversion</option><option>Reimbursement</option><option>Repayment</option><option>Credit Card Purchase</option><option>Credit Card Payment</option></select></div><div class="field"><label>Search description</label><input id="search" placeholder="Search..."></div></div><div id="archiveNotice" class="help" style="margin:4px 0 12px"></div><div class="section" style="margin:12px 0;padding:12px;border:1px solid #e3c98d;border-radius:10px"><h3 style="margin:0 0 6px">Possible duplicate transactions</h3><div id="duplicateNotice" class="help">Checking transactions…</div><div id="duplicateList"></div></div><div class="actions" style="margin-bottom:12px"><button type="button" id="exportYear" class="secondary">Export selected year (CSV)</button><button type="button" id="unlockYear" class="secondary" style="display:none">Temporarily unlock this year</button></div><div id="table" class="tablewrap"></div></div></section>
 <section id="accounts" class="panel"><div class="section"><h2>Accounts & opening balances</h2><p class="muted">Enter balances as of your ledger start date. Gwen's funds are excluded from personal net worth.</p><div class="field"><label>Ledger start date</label><input id="startDate" type="date"></div><div id="accountEditor"></div><div class="actions"><button id="saveAccounts">Save account settings</button><button id="newAccount" class="secondary">Add account</button></div><p id="accountMsg" class="muted"></p></div><div class="section"><h2>Check actual bank balances</h2><p class="muted">After recording transactions, enter the balance shown by your bank or wallet. The app compares it with your calculated balance. This does not create a transaction or change your records.</p><div id="reconcileEditor"></div><p id="reconcileMsg" class="muted"></p></div><div class="section"><h2>Rules to preserve</h2><ul class="muted"><li>Internal transfers are not expenses or income.</li><li>Credit-card purchases are expenses; card payment is a liability settlement.</li><li>Foreign currency purchase is conversion, not spending.</li><li>Investments are assets, not available spending money.</li><li>Reimbursements and friends' repayments are not income.</li></ul></div></section>
 <section id="backup" class="panel"><div class="section"><h2>Export / restore</h2><p class="muted">JSON includes your account setup and transactions. CSV is for spreadsheet review. Store exports somewhere private.</p><div class="actions"><button id="json">Export full backup (JSON)</button><button id="csv" class="secondary">Export transactions (CSV)</button></div><hr style="border:0;border-top:1px solid #dfe5e0;margin:18px 0"><div class="field"><label>Restore JSON backup exported by this app</label><input id="file" type="file" accept=".json,application/json"></div><button id="restore" class="secondary">Restore backup</button><p id="backupMsg" class="muted"></p><div class="notice" style="margin-top:14px">Bank-statement CSV import is not enabled yet. Each bank uses different columns; we should test each format before importing to avoid duplicates or incorrect balances.</div></div></section>
-<section id="audit" class="panel"><div class="section"><h2>Transaction audit history</h2><p class="muted">Shows transaction creation, edits, and deletions recorded by Supabase. Audit history is available after the database setup is completed and while signed in.</p><div class="actions" style="margin-bottom:12px"><button type="button" id="refreshAudit">Refresh audit history</button></div><p id="auditMsg" class="muted">Sign in and complete the Supabase audit setup to view history.</p><div id="auditTable" class="tablewrap"></div></div></section>
+<section id="audit" class="panel"><div class="section"><h2>Transaction audit history</h2><p class="muted">Shows transaction creation, edits, and deletions recorded by Supabase. Audit history is available after the database setup is completed and while signed in.</p><div class="actions" style="margin-bottom:12px"><button type="button" id="refreshAudit">Refresh audit history</button></div><div class="row"><div class="field"><label for="auditActionFilter">Filter by action</label><select id="auditActionFilter"><option value="">All actions</option><option value="INSERT">Created (INSERT)</option><option value="UPDATE">Edited (UPDATE)</option><option value="DELETE">Deleted (DELETE)</option></select></div><div class="field"><label for="auditSearch">Search audit history</label><input id="auditSearch" type="search" placeholder="Description, account, transaction ID..."></div></div><p id="auditMsg" class="muted">Sign in and complete the Supabase audit setup to view history.</p><div id="auditTable" class="tablewrap"></div></div></section>
 <footer>Personal finance tracker · No bank connection · Yearly archives are read-only by default</footer></main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -243,21 +243,36 @@ function auditDetails(r){
  if(!rows.length)return "No transaction field details available.";
  return `<table style="min-width:420px"><thead><tr><th>Field</th><th>Before</th><th>After</th></tr></thead><tbody>${rows.map(([k,b,a])=>`<tr><td>${esc(auditFieldLabel(k))}</td><td>${esc(auditDisplayValue(k,b))}</td><td>${esc(auditDisplayValue(k,a))}</td></tr>`).join("")}</tbody></table>`;
 }
+let auditRecords=[];
+function renderAuditHistory(){
+ const out=$("auditTable"),action=$("auditActionFilter")?.value||"",term=($("auditSearch")?.value||"").trim().toLowerCase();
+ const filtered=auditRecords.filter(r=>{
+  if(action&&r.action!==action)return false;
+  if(!term)return true;
+  const hay=[r.action,r.transaction_local_id,r.changed_at,JSON.stringify(r.old_data||{}),JSON.stringify(r.new_data||{}),auditDetails(r)].join(" ").toLowerCase();
+  return hay.includes(term);
+ });
+ $("auditMsg").textContent=`Showing ${filtered.length} of ${auditRecords.length} loaded audit event(s). Latest 200 events are available.`;
+ if(!filtered.length){out.innerHTML='<div class="empty">No audit events match these filters.</div>';return;}
+ out.innerHTML=`<table><thead><tr><th>Date & time</th><th>Action</th><th>Transaction</th><th>Details</th></tr></thead><tbody>${filtered.map(r=>{
+  const stamp=r.changed_at?new Date(r.changed_at).toLocaleString():"—";
+  return `<tr><td>${esc(stamp)}</td><td><span class="pill">${esc(r.action)}</span></td><td>${esc(r.transaction_local_id||"—")}</td><td><details><summary>View details</summary><div style="padding:8px 0;overflow-x:auto">${auditDetails(r)}</div></details></td></tr>`;
+ }).join("")}</tbody></table>`;
+}
 async function loadAuditHistory(){
  const msg=$("auditMsg"),out=$("auditTable");
- if(!cloudSession){msg.textContent="Sign in to view your audit history.";out.innerHTML="";return;}
+ if(!cloudSession){auditRecords=[];msg.textContent="Sign in to view your audit history.";out.innerHTML="";return;}
  msg.textContent="Loading audit history…";out.innerHTML="";
  try{
   const {data,error}=await cloudClient.from("transaction_audit").select("id,transaction_local_id,action,changed_at,old_data,new_data").eq("user_id",cloudSession.user.id).order("changed_at",{ascending:false}).limit(200);
   if(error)throw error;
-  if(!data||!data.length){msg.textContent="No audit entries yet. New transaction activity will appear here after the database setup is complete.";return;}
-  msg.textContent=`Showing the latest ${data.length} audit event(s). Select “View details” to inspect changes.`;
-  out.innerHTML=`<table><thead><tr><th>Date & time</th><th>Action</th><th>Transaction</th><th>Details</th></tr></thead><tbody>${data.map(r=>{
-   const stamp=r.changed_at?new Date(r.changed_at).toLocaleString():"—";
-   return `<tr><td>${esc(stamp)}</td><td><span class="pill">${esc(r.action)}</span></td><td>${esc(r.transaction_local_id||"—")}</td><td><details><summary>View details</summary><div style="padding:8px 0;overflow-x:auto">${auditDetails(r)}</div></details></td></tr>`;
-  }).join("")}</tbody></table>`;
+  auditRecords=data||[];
+  if(!auditRecords.length){msg.textContent="No audit entries yet. New transaction activity will appear here after the database setup is complete.";return;}
+  renderAuditHistory();
  }catch(e){msg.textContent="Could not load audit history: "+e.message+". Please confirm the Supabase audit SQL has been run.";}
 }
+$("auditActionFilter").addEventListener("change",renderAuditHistory);
+$("auditSearch").addEventListener("input",renderAuditHistory);
 function render(){fillSelects();renderAccounts();renderReconciliation();renderHistory();renderCategorySummary();let total=s.accounts.filter(a=>a.currency==="IDR"&&!["Investment","Liability","Bridge","Exclude from net worth"].includes(a.kind)).reduce((n,a)=>n+bal(a),0);$("balance").textContent=fmt(total);let m=today().slice(0,7),ex=s.transactions.filter(t=>["Expense","Credit Card Purchase"].includes(t.type)&&t.date.startsWith(m)&&account(t.from)?.currency==="IDR").reduce((n,t)=>n+ +t.amount,0);$("expenses").textContent=fmt(ex);$("count").textContent=s.transactions.length;let r=[...s.transactions].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);$("recent").innerHTML=r.length?`<div class="tablewrap"><table><thead><tr><th>Date</th><th>Description</th><th>Type</th><th>Amount</th></tr></thead><tbody>${r.map(t=>`<tr><td>${esc(t.date)}</td><td>${esc(t.description||"—")}</td><td>${esc(t.type)}</td><td>${fmt(t.amount,account(t.from)?.currency||"IDR")}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">No transactions yet. Start with Quick add.</div>`}
 document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab,.panel").forEach(x=>x.classList.remove("active"));b.classList.add("active");$(b.dataset.tab).classList.add("active")});
 $("category").innerHTML=EXPENSE_CATS.map(c=>`<option>${c}</option>`).join("");$("date").value=today();$("from").onchange=syncType;$("to").onchange=syncType;$("type").onchange=syncType;syncType();
