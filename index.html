@@ -109,6 +109,10 @@ function syncType(){
  if(toAccounts.some(a=>a.id===previousTo)) $("to").value=previousTo;
  $("fromWrap").classList.toggle("hidden",!needsFrom);
  $("toWrap").classList.toggle("hidden",!needsTo);
+const selectedGoldDestination=t==="Transfer"?account($("to").value):null;
+const showGoldPurchase=!!(selectedGoldDestination&&selectedGoldDestination.kind==="Investment"&&selectedGoldDestination.investmentType==="Gold");
+$("goldPurchaseWrap").classList.toggle("hidden",!showGoldPurchase);
+$("goldPurchaseHint").classList.toggle("hidden",!showGoldPurchase);
  $("from").required=needsFrom; $("to").required=needsTo;
  $("fromLabel").textContent=({"Expense":"Paid from account","Credit Card Purchase":"Credit card used","Credit Card Payment":"Paid from bank account"})[t]||"From account";
  $("toLabel").textContent=({Income:"Received into account",Transfer:"To account","Currency Conversion":"Destination account",Reimbursement:"Reimbursement received into",Repayment:"Repayment received into","Credit Card Payment":"Credit card paid"})[t]||"To account";
