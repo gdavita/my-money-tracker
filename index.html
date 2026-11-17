@@ -2,11 +2,152 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#173f35"><title>My Money — Private Tracker</title>
+<meta name="theme-color" content="#35465B"><title>My Money — Private Tracker</title>
 <style>
-:root{--g:#173f35;--mint:#e7f2ec;--bg:#f7f8f5;--ink:#202a25;--muted:#68746e;--line:#dfe5e0}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}header{background:var(--g);color:white;padding:20px}header h1{margin:0;font-size:22px}header p{margin:4px 0 0;color:#d6e4dc;font-size:13px}.wrap{max-width:950px;margin:auto;padding:14px}.notice{background:#fff4dc;border:1px solid #eed8a4;color:#614819;border-radius:12px;padding:12px;margin-bottom:12px;font-size:13px}.tabs{display:flex;gap:7px;overflow:auto;margin-bottom:13px}.tab,button{border:0;border-radius:10px;padding:10px 13px;font:inherit;font-weight:650;cursor:pointer}.tab{background:white;border:1px solid var(--line);color:var(--muted);white-space:nowrap}.tab.active,button{background:var(--g);color:white}.secondary{background:var(--mint);color:var(--g);border:1px solid #c9ded1}.panel{display:none}.panel.active{display:block}.card,.section{background:white;border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.label,label{font-size:12px;color:var(--muted);font-weight:650}.value{font-size:20px;font-weight:750;margin-top:4px}.section h2{font-size:17px;margin:0 0 12px}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}input,select{width:100%;font:inherit;border:1px solid #cfd8d1;border-radius:9px;padding:10px;background:white;min-height:42px}.actions{display:flex;gap:8px;flex-wrap:wrap}.muted{color:var(--muted);font-size:13px}.help{background:#f1f6f2;border-radius:9px;padding:10px;font-size:13px;color:#395447}.tablewrap{overflow:auto}table{border-collapse:collapse;width:100%;min-width:600px;font-size:13px}td,th{padding:9px 7px;border-bottom:1px solid var(--line);text-align:left}th{font-size:11px;color:var(--muted)}.pill{background:var(--mint);color:var(--g);border-radius:99px;padding:3px 7px;font-size:11px}.empty{text-align:center;padding:20px;color:var(--muted)}.account{display:grid;grid-template-columns:1fr 90px 110px 140px;gap:7px;margin-bottom:8px}.account input,.account select{min-height:38px;padding:7px}.donut-layout{display:grid;grid-template-columns:minmax(180px,240px) 1fr;gap:22px;align-items:center;margin:16px 0}.donut{width:100%;max-width:220px;aspect-ratio:1;border-radius:50%;margin:auto;position:relative}.donut-hole{position:absolute;inset:24%;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;text-align:center;padding:6px;font-weight:750;font-size:13px}.legend{display:grid;gap:9px}.legend-row{display:grid;grid-template-columns:12px 1fr auto;gap:8px;align-items:center;font-size:13px}.legend-swatch{width:11px;height:11px;border-radius:3px}.trend-row{display:grid;grid-template-columns:76px 1fr;gap:9px;align-items:center;margin:10px 0;font-size:12px}.trend-bars{display:grid;gap:4px}.trend-bar{height:12px;border-radius:3px;min-width:2px}.trend-income{background:#83ad98}.trend-expense{background:#173f35}.trend-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:8px 0}.trend-key{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}.hidden{display:none!important}footer{text-align:center;color:var(--muted);font-size:12px;padding:16px}
-@media(max-width:600px){.donut-layout{grid-template-columns:1fr}.donut{max-width:190px}.stats{grid-template-columns:1fr}.row{grid-template-columns:1fr}.account{grid-template-columns:1fr 90px}.account .extra{grid-column:1/-1}.reconrow{grid-template-columns:1fr 1fr}.reconrow .extra{grid-column:1/-1}.wrap{padding:10px}}
+
+:root{
+  --g:#829CB8;
+  --g-dark:#35465B;
+  --mint:#E9F0F6;
+  --bg:#F4F7FA;
+  --ink:#263547;
+  --muted:#718096;
+  --line:#E1E8F0;
+  --blue-soft:#F0F5FA;
+  --white:#FFFFFF;
+  --shadow:0 8px 24px rgba(53,70,91,.055);
+  --shadow-hover:0 12px 28px rgba(53,70,91,.09);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font:15px/1.55 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+header{
+  background:linear-gradient(125deg,#35465B 0%,#526D8A 58%,#829CB8 100%);
+  color:white;
+  padding:27px max(20px,calc((100% - 1080px)/2));
+  position:relative;
+  overflow:hidden;
+}
+header:after{
+  content:"";position:absolute;width:250px;height:250px;border-radius:50%;
+  background:rgba(255,255,255,.075);right:8%;top:-155px;pointer-events:none;
+}
+header h1{margin:0;font-size:25px;font-weight:750;letter-spacing:-.6px}
+header p{margin:5px 0 0;color:#E0E9F2;font-size:13px;letter-spacing:.15px}
+.wrap{max-width:1080px;margin:0 auto;padding:22px 20px 36px}
+.notice{
+  background:#FFF9ED;border:1px solid #F1E3C6;color:#725B31;
+  border-radius:14px;padding:13px 16px;margin-bottom:16px;font-size:13px
+}
+#cloudPanel{
+  background:linear-gradient(135deg,#FFFFFF,#F6F9FC);
+  border:1px solid var(--line);border-radius:18px;padding:18px 20px;
+  box-shadow:var(--shadow);margin-bottom:18px
+}
+#cloudPanel h2{margin-bottom:5px}
+.tabs{
+  display:flex;gap:8px;overflow-x:auto;margin:0 0 20px;padding:4px 2px 9px;
+  scrollbar-width:thin;scrollbar-color:#C6D3E0 transparent
+}
+.tab,button{
+  border:0;border-radius:11px;padding:10px 15px;font:inherit;font-weight:650;
+  cursor:pointer;transition:background .18s ease,color .18s ease,transform .18s ease,box-shadow .18s ease;
+}
+.tab{
+  background:#FFFFFF;border:1px solid var(--line);color:#66788C;white-space:nowrap;
+  box-shadow:0 2px 5px rgba(53,70,91,.025)
+}
+.tab:hover{background:#F0F5FA;color:var(--g-dark)}
+.tab.active,button{
+  background:var(--g-dark);color:#FFFFFF
+}
+.tab.active{box-shadow:0 4px 12px rgba(53,70,91,.16)}
+button:hover{background:#506A87;box-shadow:0 5px 12px rgba(53,70,91,.16);transform:translateY(-1px)}
+button:active{transform:translateY(0)}
+button:focus-visible,.tab:focus-visible,input:focus-visible,select:focus-visible{
+  outline:3px solid rgba(130,156,184,.28);outline-offset:2px
+}
+.secondary{
+  background:#EAF0F6;color:#405B78;border:1px solid #D6E1EC;box-shadow:none
+}
+.secondary:hover{background:#DDE8F2;color:#35465B;box-shadow:none}
+.panel{display:none}
+.panel.active{display:block;animation:panelIn .22s ease}
+@keyframes panelIn{from{opacity:.55;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.card,.section{
+  background:var(--white);border:1px solid var(--line);border-radius:17px;
+  padding:18px;margin-bottom:15px;box-shadow:var(--shadow)
+}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
+.stats>.card{margin:0;min-width:0;background:linear-gradient(145deg,#FFFFFF,#F8FAFC)}
+.label,label{font-size:12px;color:var(--muted);font-weight:650;letter-spacing:.15px}
+.value{font-size:22px;font-weight:760;letter-spacing:-.45px;margin-top:5px;color:var(--g-dark);overflow-wrap:anywhere}
+.section h2{font-size:17px;font-weight:750;letter-spacing:-.2px;margin:0 0 13px;color:#34465A}
+.section h3{color:#40566F}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:13px}
+input,select{
+  width:100%;font:inherit;color:var(--ink);border:1px solid #D5DFE9;border-radius:11px;
+  padding:11px 12px;background:#FFFFFF;min-height:44px;transition:border-color .15s,box-shadow .15s
+}
+input:focus,select:focus{outline:none;border-color:#91A9C2;box-shadow:0 0 0 3px rgba(130,156,184,.14)}
+input::placeholder{color:#A1ADBA}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:5px}
+.actions button{min-height:42px;padding:10px 17px}
+.muted{color:var(--muted);font-size:13px}
+.help{background:#F0F5F9;border:1px solid #E1EAF2;border-radius:12px;padding:12px 14px;font-size:13px;color:#526A82}
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:600px;font-size:13px;background:white}
+td,th{padding:11px 10px;border-bottom:1px solid #EAF0F5;text-align:left}
+th{font-size:11px;color:#71849A;background:#F5F8FB;text-transform:uppercase;letter-spacing:.45px}
+tbody tr:hover{background:#F8FAFC}
+.pill{background:#EAF0F6;color:#496582;border-radius:99px;padding:4px 9px;font-size:11px;font-weight:650}
+.empty{text-align:center;padding:26px;color:var(--muted)}
+.account{display:grid;grid-template-columns:1fr 90px 110px 140px;gap:8px;margin-bottom:10px;padding:10px;background:#F7F9FC;border:1px solid var(--line);border-radius:13px}
+.account input,.account select{min-height:39px;padding:8px 9px}
+.donut-layout{display:grid;grid-template-columns:minmax(180px,240px) 1fr;gap:22px;align-items:center;margin:16px 0}
+.donut{width:100%;max-width:220px;aspect-ratio:1;border-radius:50%;margin:auto;position:relative}
+.donut-hole{position:absolute;inset:24%;border-radius:50%;background:white;display:flex;align-items:center;justify-content:center;text-align:center;padding:6px;font-weight:750;font-size:13px;color:var(--g-dark)}
+.legend{display:grid;gap:9px}
+.legend-row{display:grid;grid-template-columns:12px 1fr auto;gap:8px;align-items:center;font-size:13px}
+.legend-swatch{width:11px;height:11px;border-radius:4px}
+.trend-row{display:grid;grid-template-columns:76px 1fr;gap:9px;align-items:center;margin:11px 0;font-size:12px}
+.trend-bars{display:grid;gap:5px}
+.trend-bar{height:13px;border-radius:5px;min-width:2px}
+.trend-income{background:#9DB8D1}
+.trend-expense{background:#526D8A}
+.trend-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:10px 0}
+.trend-key{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}
+.hidden{display:none!important}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:18px}
+@media(max-width:700px){
+  header{padding:22px 17px}
+  .wrap{padding:15px 13px 28px}
+  .stats{grid-template-columns:1fr 1fr}
+  .stats>.card:last-child:nth-child(odd){grid-column:1/-1}
+  .row{grid-template-columns:1fr}
+  .account{grid-template-columns:1fr 90px}
+  .account .extra{grid-column:1/-1}
+  .reconrow{grid-template-columns:1fr 1fr}
+  .reconrow .extra{grid-column:1/-1}
+  .card,.section{padding:15px;border-radius:15px}
+  #cloudPanel{padding:15px}
+  .tabs{margin-bottom:15px}
+}
+@media(max-width:420px){
+  .stats{grid-template-columns:1fr}
+  .stats>.card:last-child:nth-child(odd){grid-column:auto}
+  header h1{font-size:23px}
+  .value{font-size:21px}
+  .tab{padding:9px 12px;font-size:13px}
+}
+
 </style></head>
 <body><header><h1>My Money</h1><p>Private personal finance tracker · validation v2</p></header>
 <main class="wrap">
